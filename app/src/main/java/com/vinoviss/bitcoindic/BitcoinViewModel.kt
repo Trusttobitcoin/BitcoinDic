@@ -45,6 +45,10 @@ class BitcoinViewModel(application: Application) : AndroidViewModel(application)
     private val _favoriteTermsList = MutableStateFlow<List<BitcoinTerm>>(emptyList())
     val favoriteTermsList: StateFlow<List<BitcoinTerm>> = _favoriteTermsList
 
+    // Theme preference (false for light, true for dark)
+    private val _isDarkTheme = MutableStateFlow(loadThemePreference())
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme
+
     // All terms cache for suggestions and favorites
     private val _allTerms = MutableStateFlow<List<BitcoinTerm>>(emptyList())
 
@@ -247,6 +251,13 @@ class BitcoinViewModel(application: Application) : AndroidViewModel(application)
         _favoriteTermsList.value = _allTerms.value.filter { term -> favoriteIds.contains(term.id) }
     }
 
+    // Theme functionality
+    fun toggleTheme() {
+        val newThemeValue = !_isDarkTheme.value
+        _isDarkTheme.value = newThemeValue
+        saveThemePreference(newThemeValue)
+    }
+
     // Original function kept for backward compatibility
     fun getFavoriteTerms(): List<BitcoinTerm> {
         // Update favorites list first to ensure it's current
@@ -266,5 +277,18 @@ class BitcoinViewModel(application: Application) : AndroidViewModel(application)
         val prefs = getApplication<Application>().getSharedPreferences("bitcoin_dictionary_prefs", Application.MODE_PRIVATE)
         val stringSet = prefs.getStringSet("favorites", emptySet()) ?: emptySet()
         return stringSet.mapNotNull { it.toIntOrNull() }.toSet()
+    }
+
+    // Persistence for theme preference
+    private fun saveThemePreference(isDark: Boolean) {
+        val prefs = getApplication<Application>().getSharedPreferences("bitcoin_dictionary_prefs", Application.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("dark_theme", isDark)
+            .apply()
+    }
+
+    private fun loadThemePreference(): Boolean {
+        val prefs = getApplication<Application>().getSharedPreferences("bitcoin_dictionary_prefs", Application.MODE_PRIVATE)
+        return prefs.getBoolean("dark_theme", false) // Default to light theme
     }
 }

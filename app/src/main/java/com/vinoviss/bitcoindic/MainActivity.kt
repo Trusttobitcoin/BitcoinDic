@@ -7,7 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vinoviss.bitcoindic.ui.BitcoinViewModel
 import com.vinoviss.bitcoindic.ui.theme.BitcoinDicTheme
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +19,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BitcoinDicTheme {
+            val viewModel: BitcoinViewModel = viewModel()
+            val darkTheme by viewModel.isDarkTheme.collectAsState()
+
+            BitcoinDicTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

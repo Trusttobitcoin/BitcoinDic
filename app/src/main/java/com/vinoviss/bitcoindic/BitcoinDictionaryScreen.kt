@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,11 +30,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Favorite
@@ -56,6 +58,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -84,8 +88,14 @@ import java.lang.Math.max
 import java.lang.Math.min
 
 enum class Screen {
-    HOME, FAVORITES, ABOUT
+    HOME, FAVORITES, ABOUT, SETTINGS
 }
+
+// Define the silver metallic color
+private val MetallicSilver = Color(0xFFE8E8E8).copy(alpha = 0.9f)
+
+// Add Bitcoin Orange light color
+private val BitcoinOrangeLight = Color(0xFFFFB74D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +109,7 @@ fun BitcoinDictionaryScreen() {
     val searchSuggestions by viewModel.searchSuggestions.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val favoriteTermsList by viewModel.favoriteTermsList.collectAsState()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
 
     var activeSearch by rememberSaveable { mutableStateOf(false) }
     var selectedTerm by remember { mutableStateOf<BitcoinTerm?>(null) }
@@ -164,8 +175,20 @@ fun BitcoinDictionaryScreen() {
                         label = { Text(if (selectedTab == 1) "علاقه‌مندی‌ها" else "Favorites") }
                     )
                     NavigationBarItem(
+                        selected = currentScreen == Screen.SETTINGS,
+                        onClick = {
+                            currentScreen = Screen.SETTINGS
+                            selectedTerm = null
+                        },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text(if (selectedTab == 1) "تنظیمات" else "Settings") }
+                    )
+                    NavigationBarItem(
                         selected = currentScreen == Screen.ABOUT,
-                        onClick = { currentScreen = Screen.ABOUT },
+                        onClick = {
+                            currentScreen = Screen.ABOUT
+                            selectedTerm = null
+                        },
                         icon = { Icon(Icons.Default.Info, contentDescription = "About") },
                         label = { Text(if (selectedTab == 1) "درباره" else "About") }
                     )
@@ -178,7 +201,7 @@ fun BitcoinDictionaryScreen() {
                     .padding(padding)
             ) {
                 // Tabs for selecting language - only show in dictionary screens
-                if (currentScreen != Screen.ABOUT) {
+                if (currentScreen != Screen.ABOUT && currentScreen != Screen.SETTINGS) {
                     TabRow(selectedTabIndex = selectedTab) {
                         Tab(
                             selected = selectedTab == 0,
@@ -194,7 +217,7 @@ fun BitcoinDictionaryScreen() {
                 }
 
                 // Search - only show in dictionary screens
-                if (currentScreen != Screen.ABOUT) {
+                if (currentScreen != Screen.ABOUT && currentScreen != Screen.SETTINGS) {
                     SearchBar(
                         query = searchQuery,
                         onQueryChange = {
@@ -277,12 +300,19 @@ fun BitcoinDictionaryScreen() {
                             } else {
                                 // Favorites content with grid layout and remove option
                                 FavoritesScreen(
-                                    favorites = favoriteTermsList, // Use the StateFlow directly instead of calling the function
+                                    favorites = favoriteTermsList,
                                     isRtl = selectedTab == 1,
                                     onTermClick = { selectedTerm = it },
                                     onRemoveFavorite = { termId -> viewModel.toggleFavorite(termId) }
                                 )
                             }
+                        }
+                        Screen.SETTINGS -> {
+                            SettingsScreen(
+                                isDarkTheme = isDarkTheme,
+                                isRtl = selectedTab == 1,
+                                onToggleTheme = { viewModel.toggleTheme() }
+                            )
                         }
                         Screen.ABOUT -> {
                             AboutScreen(isRtl = selectedTab == 1)
@@ -291,6 +321,100 @@ fun BitcoinDictionaryScreen() {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SettingsScreen(
+    isDarkTheme: Boolean,
+    isRtl: Boolean,
+    onToggleTheme: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp)
+    ) {
+        // Settings Title
+        Text(
+            text = if (isRtl) "تنظیمات" else "Settings",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Theme setting
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MetallicSilver
+            ),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, BitcoinOrange)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Theme icon
+                Icon(
+                    imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                    contentDescription = null,
+                    tint = BitcoinOrange,
+                    modifier = Modifier.size(24.dp)
+                )
+
+                // Theme label
+                Text(
+                    text = if (isRtl)
+                        (if (isDarkTheme) "حالت تاریک" else "حالت روشن")
+                    else
+                        (if (isDarkTheme) "Dark Mode" else "Light Mode"),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    textAlign = if (isRtl) TextAlign.Right else TextAlign.Left
+                )
+
+                // Theme toggle
+                Switch(
+                    checked = isDarkTheme,
+                    onCheckedChange = { onToggleTheme() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BitcoinOrange,
+                        checkedTrackColor = BitcoinOrangeLight,
+                        uncheckedThumbColor = Color.Gray,
+                        uncheckedTrackColor = Color.LightGray
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Theme description
+        Text(
+            text = if (isRtl)
+                "می‌توانید بین حالت روشن و تاریک برنامه انتخاب کنید. حالت تاریک برای استفاده در محیط کم نور مناسب‌تر است."
+            else
+                "You can choose between light and dark themes. Dark mode is more suitable for use in low-light environments.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -339,6 +463,7 @@ fun DictionaryContent(
         }
     }
 }
+
 @Composable
 fun TermGridItem(
     term: BitcoinTerm,
@@ -415,7 +540,6 @@ fun TermGridItem(
     }
 }
 
-
 @Composable
 fun FavoritesScreen(
     favorites: List<BitcoinTerm>,
@@ -479,6 +603,7 @@ fun FavoritesScreen(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteGridItem(
@@ -621,8 +746,7 @@ fun FavoriteGridItem(
         )
     }
 }
-// Define the silver metallic color
-private val MetallicSilver = Color(0xFFE8E8E8).copy(alpha = 0.9f)
+
 @Composable
 fun AboutScreen(isRtl: Boolean) {
     val scrollState = rememberScrollState()
@@ -638,7 +762,7 @@ fun AboutScreen(isRtl: Boolean) {
             text = if (isRtl) "درباره دیکشنری بیت‌کوین" else "About Bitcoin Dictionary",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Right,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -667,7 +791,7 @@ fun AboutScreen(isRtl: Boolean) {
             else
                 "This application is a bilingual dictionary for Bitcoin terminology. You can search terms in both English and Persian, save favorites, and adjust text size for better readability. All data for this application has been collected from bitcoind.me website.",
             style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Right,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -677,7 +801,7 @@ fun AboutScreen(isRtl: Boolean) {
         Text(
             text = if (isRtl) "توسعه‌دهنده: Zero" else "Developer: Zero",
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Right,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -687,7 +811,7 @@ fun AboutScreen(isRtl: Boolean) {
         Text(
             text = if (isRtl) "منبع داده‌ها: bitcoind.me" else "Data source: bitcoind.me",
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Right,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -697,7 +821,7 @@ fun AboutScreen(isRtl: Boolean) {
         Text(
             text = if (isRtl) "نسخه: 1.0" else "Version: 1.0",
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Right,
+            textAlign = if (isRtl) TextAlign.Right else TextAlign.Left,
             modifier = Modifier.fillMaxWidth()
         )
     }
